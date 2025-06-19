@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints
+.mypy_cache/
+.ruff_cache/
+.vscode/
+
+# Node.js
+node_modules/
+build/
+.parcel-cache/
+.sonofanton/
+.idea/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase Admin SDK Key (Crucial for security!)
+backend/serviceAccountKey.json
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+.editorconfig
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS specific
+.DS_Store
+Thumbs.db
