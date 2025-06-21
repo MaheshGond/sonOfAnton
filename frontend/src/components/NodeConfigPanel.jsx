@@ -1,72 +1,62 @@
 import React from 'react';
 
-const NodeConfigPanel = ({ selectedNode, updateNodeData, onDeleteNode }) => {
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    updateNodeData(selectedNode.id, { ...selectedNode.data, [name]: value });
-  };
+// Define all node configuration schemas here
+const nodeConfigSchema = {
+  SymptomChecker: [
+    { label: 'Symptom List', name: 'symptomList', type: 'text', placeholder: 'e.g. cough, fever' },
+  ],
+  PersonalizedTutor: [
+    { label: 'Subject', name: 'subject', type: 'text', placeholder: 'e.g. Math, Science' },
+  ],
+  LeadNurturer: [
+    { label: 'Lead Source', name: 'leadSource', type: 'text', placeholder: 'e.g. Website, Email' },
+  ],
+  ResumeScreener: [
+    { label: 'Keywords', name: 'keywords', type: 'text', placeholder: 'e.g. JavaScript, React' },
+  ],
+  DocumentSummarizer: [
+    { label: 'Summary Length', name: 'summaryLength', type: 'number', placeholder: 'e.g. 100' },
+  ],
+  ChatbotAssistant: [
+    { label: 'Greeting Message', name: 'greeting', type: 'text', placeholder: 'e.g. Hi, how can I help you?' },
+  ],
+  // Add more agents as needed
+};
 
-  const renderFields = () => {
-    switch (selectedNode.data.type) {
-      case 'Input':
-        return (
-          <>
-            <label>Input Source</label>
-            <input
-              name="source"
-              value={selectedNode.data.source || ''}
-              onChange={handleChange}
-              className="border p-2 mb-2 w-full"
-            />
-          </>
-        );
-      case 'Summarizer':
-        return (
-          <>
-            <label>Summary Length</label>
-            <input
-              name="summaryLength"
-              type="number"
-              value={selectedNode.data.summaryLength || 100}
-              onChange={handleChange}
-              className="border p-2 mb-2 w-full"
-            />
-          </>
-        );
-      case 'Email':
-        return (
-          <>
-            <label>Email Address</label>
-            <input
-              name="email"
-              value={selectedNode.data.email || ''}
-              onChange={handleChange}
-              className="border p-2 mb-2 w-full"
-            />
-          </>
-        );
-      default:
-        return <div>No configuration needed.</div>;
-    }
+const NodeConfigPanel = ({ selectedNode, updateNodeData }) => {
+  const { label, type, config } = selectedNode.data;
+
+  const schema = nodeConfigSchema[type];
+
+  const handleInputChange = (e) => {
+    updateNodeData(selectedNode.id, {
+      ...selectedNode.data,
+      config: { ...config, [e.target.name]: e.target.value },
+    });
   };
 
   return (
     <div>
-      <h3 className="text-lg font-bold mb-4">Node Configuration</h3>
-      <label>Label</label>
-      <input
-        name="label"
-        value={selectedNode.data.label}
-        onChange={handleChange}
-        className="border p-2 mb-4 w-full"
-      />
-      {renderFields()}
-      <button
-        onClick={() => onDeleteNode(selectedNode.id)}
-        className="mt-4 bg-red-500 text-white p-2 rounded"
-      >
-        Delete Node
-      </button>
+      <h2 className="text-lg font-semibold mb-4">{label} Configuration</h2>
+      {schema ? (
+        <div className="space-y-4">
+          {schema.map((field) => (
+            <div key={field.name}>
+              <label className="block text-gray-700 mb-1">{field.label}</label>
+              <input
+                type={field.type}
+                name={field.name}
+                value={config[field.name] || ''}
+                onChange={handleInputChange}
+                placeholder={field.placeholder}
+                className="border p-2 w-full rounded"
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-gray-500">No specific configuration for this agent.</div>
+      )}
     </div>
   );
 };

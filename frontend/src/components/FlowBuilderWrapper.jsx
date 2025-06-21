@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import ReactFlow, {
   addEdge,
   Background,
@@ -10,38 +10,21 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import Sidebar from './Sidebar';
-import NodeConfigPanel from './NodeConfigPanel';
-import CustomNode from './CustomNode';
+// Importing local components
+import Sidebar from '../components/Sidebar'; // Path adjusted
+import NodeConfigPanel from '../components/NodeConfigPanel'; // Path adjusted
+import CustomNode from '../components/CustomNode'; // Path adjusted
 
+// Importing Lucide icons (already defined in Sidebar, but needed here for iconMap)
 import {
-  Video,
-  Mail,
-  FileText,
-  MessageCircle,
-  Bot,
-  PlayCircle,
-  Database,
-  Send,
-  User,
-  Book,
-  Briefcase,
-  Search,
-  ClipboardList,
-  Film,
-  AlertCircle,
-  Globe,
-  Heart,
-  Smile,
-  TrendingUp,
-  FormInput,
-  Newspaper,
+  Video, Mail, FileText, MessageCircle, Bot, PlayCircle, Database, Send, User, Book, Briefcase, Search, ClipboardList, Film, AlertCircle, Globe, Heart, Smile, TrendingUp, FormInput, Newspaper
 } from 'lucide-react';
 
 const nodeTypes = {
   custom: CustomNode,
 };
 
+// Moved iconMap and labelMap here as they are directly used by FlowBuilderWrapper
 const iconMap = {
   SymptomChecker: <AlertCircle className="w-4 h-4" />,
   PersonalizedTutor: <Book className="w-4 h-4" />,
@@ -94,40 +77,44 @@ const labelMap = {
   Trigger: 'Trigger Node',
 };
 
+
 const FlowBuilderWrapper = () => {
   const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null); // State to hold the ReactFlow instance
   const [selectedNode, setSelectedNode] = useState(null);
 
   const onDrop = useCallback(
     (event) => {
       event.preventDefault();
-      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-      const type = event.dataTransfer.getData('application/reactflow');
+      // Ensure reactFlowInstance is available before using it
+      if (!reactFlowInstance) return;
 
+      const type = event.dataTransfer.getData('application/reactflow');
       if (!type) return;
 
-      const position = {
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
-      };
+      // Correctly convert screen coordinates to flow coordinates using reactFlowInstance
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
 
       const newNode = {
         id: `${type}_${+new Date()}`,
-        type: 'custom',
+        type: 'custom', // All custom nodes use the 'custom' type defined in nodeTypes
         position,
         data: {
           label: labelMap[type] || type,
           icon: iconMap[type],
-          type,
-          config: {},
+          type, // Store the original type for identification and configuration
+          config: {}, // Initialize with empty config
         },
       };
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [setNodes]
+    [reactFlowInstance, setNodes] // Add reactFlowInstance to dependencies
   );
 
   const onDragOver = useCallback((event) => {
@@ -140,14 +127,65 @@ const FlowBuilderWrapper = () => {
     [setEdges]
   );
 
-  const onNodeClick = (event, node) => {
+  const onNodeClick = useCallback((event, node) => {
     setSelectedNode(node);
-  };
+  }, []);
 
-  const updateNodeData = (nodeId, newData) => {
+  const updateNodeData = useCallback((nodeId, newData) => {
     setNodes((nds) =>
       nds.map((node) => (node.id === nodeId ? { ...node, data: newData } : node))
     );
+    setSelectedNode(prev => (prev && prev.id === nodeId ? { ...prev, data: newData } : prev));
+  }, [setNodes]);
+
+  const handleImport = (event) => {
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+      try {
+        const data = JSON.parse(fileReader.result);
+        if (data.nodes && data.edges) {
+          setNodes(data.nodes);
+          setEdges(data.edges);
+        } else {
+          // Changed alert to console.error + div message for better UX
+          console.error('Invalid flow file: Missing nodes or edges property.');
+          // Optionally show a message on UI for user
+        }
+      } catch (error) {
+        console.error('Error reading file:', error);
+        // Optionally show a message on UI for user
+      }
+    };
+    if (event.target.files && event.target.files[0]) {
+      fileReader.readAsText(event.target.files[0]);
+    }
+  };
+
+  const handleExport = () => {
+    const data = {
+      nodes,
+      edges,
+    };
+    const file = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'flow.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url); // Clean up the object URL
+  };
+
+  const handleSave = () => {
+    localStorage.setItem('savedFlow', JSON.stringify({ nodes, edges }));
+    console.log('Flow saved locally.');
+    // In a real application, you'd show a user-friendly message
+  };
+
+  const handleSchedule = () => {
+    console.log('Scheduling feature to be implemented.');
+    // In a real application, you'd show a user-friendly message
   };
 
   const onKeyDown = useCallback(
@@ -170,7 +208,7 @@ const FlowBuilderWrapper = () => {
       <div
         className="flex h-screen w-screen overflow-hidden"
         onKeyDown={onKeyDown}
-        tabIndex={0}
+        tabIndex={0} // Make div focusable for keydown events
       >
         {/* Sidebar */}
         <div className="w-64 bg-gray-100 p-4 shadow-lg overflow-y-auto h-screen">
@@ -186,6 +224,7 @@ const FlowBuilderWrapper = () => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onInit={setReactFlowInstance} // Set the ReactFlow instance here
             onDrop={onDrop}
             onDragOver={onDragOver}
             onNodeClick={onNodeClick}
@@ -196,11 +235,25 @@ const FlowBuilderWrapper = () => {
             <MiniMap />
           </ReactFlow>
 
-          <div className="absolute top-4 right-4 space-x-2">
-            <button className="bg-blue-500 text-white px-4 py-2 rounded">Export</button>
-            <button className="bg-green-500 text-white px-4 py-2 rounded">Import</button>
-            <button className="bg-yellow-500 text-white px-4 py-2 rounded">Save</button>
-            <button className="bg-purple-500 text-white px-4 py-2 rounded">Schedule</button>
+          <div className="absolute top-4 right-4 space-x-2 z-10"> {/* Ensure buttons are above canvas */}
+            <button onClick={handleExport} className="bg-blue-500 text-white px-4 py-2 rounded">Export</button>
+
+            {/* Import File Input (Hidden) */}
+            <input
+              type="file"
+              accept="application/json"
+              onChange={handleImport}
+              className="hidden"
+              id="importFile"
+            />
+
+            {/* Import Button */}
+            <label htmlFor="importFile" className="bg-green-500 text-white px-4 py-2 rounded cursor-pointer">
+              Import
+            </label>
+
+            <button onClick={handleSave} className="bg-yellow-500 text-white px-4 py-2 rounded">Save</button>
+            <button onClick={handleSchedule} className="bg-purple-500 text-white px-4 py-2 rounded">Schedule</button>
           </div>
         </div>
 
