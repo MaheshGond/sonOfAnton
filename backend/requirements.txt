@@ -1,0 +1,9 @@
+# FastAPI Core
+fastapi==0.110.1
+uvicorn[standard]==0.29.0
+
+# Celery for async task queues
+celery==5.3.6
+
+# Redis for Celery backend
+redis==5.0.3
